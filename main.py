@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Flask, abort, render_template, redirect, url_for, flash
+from flask import Flask, abort, render_template, redirect, url_for, flash, request
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 # from flask_gravatar import Gravatar
@@ -11,6 +11,11 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 # Import your forms from the forms.py
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
+import os
+from dotenv import load_dotenv
+import smtplib
+
+load_dotenv()
 
 
 '''
@@ -27,7 +32,8 @@ This will install the packages from the requirements.txt for this project.
 '''
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+# app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6bghjdrtwdyshaj7363tryedusj'
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 ckeditor = CKEditor(app)
 Bootstrap5(app)
 
@@ -37,7 +43,8 @@ Bootstrap5(app)
 # CREATE DATABASE
 class Base(DeclarativeBase):
     pass
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI")
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
@@ -242,8 +249,25 @@ def about():
     return render_template("about.html")
 
 
-@app.route("/contact")
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
+    if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        message = request.form["message"]
+        phone = request.form["phone"]
+        print(name, email, message, phone)
+
+        connection = smtplib.SMTP("smtp.gmail.com")
+        connection.starttls()
+        connection.login(user=os.environ.get("MY_EMAIL"), password=os.environ.get("PASSWORD"))
+        connection.sendmail(from_addr=os.environ.get("MY_EMAIL"),
+                            to_addrs="olyblv@gmail.com",
+                            msg=f"subject:{name} wants to contact you\n\nemail: {email}\nphone: {phone}\nmessage: {message}"
+                            )
+        connection.close()
+
+        pass
     return render_template("contact.html")
 
 
